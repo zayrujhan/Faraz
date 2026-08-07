@@ -2,6 +2,8 @@
 
 Backend API — open Swagger at `/docs` after starting the server.
 
+Full SRS (architecture, UML diagrams, requirements): see `docs/SRS.md` locally — not included in this repository.
+
 ## Setup
 
 ### 1. Clone

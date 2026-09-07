@@ -1,25 +1,56 @@
+import { useEffect, useState } from 'react'
 import ProductCard from '../components/ProductCard'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 function HomePage() {
+    const [products, setProducts] = useState([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState('')
+
+    useEffect(() => {
+        const controller = new AbortController()
+
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_URL}/products/?limit=8`, {
+                    signal: controller.signal,
+                })
+                if (!response.ok) throw new Error('Unable to load products.')
+                setProducts(await response.json())
+            } catch (err) {
+                if (err.name !== 'AbortError') setError('Products could not be loaded. Please try again later.')
+            } finally {
+                if (!controller.signal.aborted) setIsLoading(false)
+            }
+        }
+
+        loadProducts()
+        return () => controller.abort()
+    }, [])
+
     return (
         <>
             <Navbar />
             <section className="mx-6 md:mx-12 lg:mx-16 my-8 border border-gray-300 rounded-md 
                     min-h-[270px] flex flex-col items-center justify-center">
                 <h1 className="text-2xl md:text-3xl font-medium text-gray-700">Tagline describing your e-shop</h1>
-                <button className="bg-gray-700 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                <a href="#/shop" className="bg-gray-700 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                     Shop Now
-                </button>
+                </a>
             </section>
 
             <section className="mx-6 md:mx-12 lg:mx-16 my-10 border border-gray-300 rounded-md py-8 px-6 text-center">
                 <h2 className="text-2xl md:text-3xl font-medium text-gray-700"> Featured Products</h2>
                 <div className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                   <ProductCard />
-                   <ProductCard />
-                   <ProductCard />
-                   <ProductCard />
+                    {isLoading && <p className="col-span-full text-gray-500">Loading products...</p>}
+                    {error && <p className="col-span-full text-red-600">{error}</p>}
+                    {!isLoading && !error && products.length === 0 && (
+                        <p className="col-span-full text-gray-500">No products are available yet.</p>
+                    )}
+                    {products.map((product) => <ProductCard key={product.id} product={product} />)}
                 </div>
             </section>
             <section className="mx-6 md:mx-12 lg:mx-16 my-10 border-y border-gray-300 py-8 px-6">

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
@@ -62,6 +63,14 @@ Unified REST API for the **Faraz** marketplace — users, catalog, cart, orders,
         {"name": "Reviews", "description": "Product reviews."},
         {"name": "Shipments", "description": "Shipment creation and status management."},
     ],
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Dependency: DB session (re-exported from database module)

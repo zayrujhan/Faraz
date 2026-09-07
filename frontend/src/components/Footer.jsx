@@ -31,9 +31,9 @@ function Footer() {
                     </h3>
 
                     <div className="space-y-3 text-sm text-gray-500">
-                        <a href="#" className="block hover:text-gray-800">Home</a>
+                        <a href="#/" className="block hover:text-gray-800">Home</a>
                         <a href="#" className="block hover:text-gray-800">About</a>
-                        <a href="#" className="block hover:text-gray-800">Shop</a>
+                        <a href="#/shop" className="block hover:text-gray-800">Shop</a>
                         <a href="#" className="block hover:text-gray-800">Help</a>
                     </div>
                 </div>

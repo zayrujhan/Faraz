@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import timedelta
 from typing import Optional
+import shutil
+import uuid
+from pathlib import Path
 
 from . import crud, models, schemas
 import os
@@ -20,6 +24,9 @@ from .auth import (
 from .dependencies.seller_scope import resolve_seller_scope
 from .services import product_service, seller_analytics
 from .services.chatbot import generate_chat_reply
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 
 models.Base.metadata.create_all(bind=engine)
 with Local_Session() as db:
@@ -75,6 +82,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 # Dependency: DB session (re-exported from database module)
 
@@ -363,13 +372,39 @@ def create_product(product: schemas.ProductBase, db: Session = Depends(get_db), 
 @app.get("/seller/products/", response_model=List[schemas.Product], include_in_schema=False)
 def seller_get_products(
     include_inactive: bool = False,
+    search: Optional[str] = None,
+    category_id: Optional[int] = None,
+    sort: Optional[str] = None,
+    order: str = "asc",
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
     scope=Depends(resolve_seller_scope),
 ):
     _, seller_id, is_aggregated = scope
     if is_aggregated:
-        return crud.get_products(db, skip=0, limit=10000, active_only=not include_inactive)
-    return product_service.get_seller_products(db, seller_id, include_inactive=include_inactive)
+        return crud.get_products(
+            db, skip=skip, limit=limit, active_only=not include_inactive,
+            search=search, category_id=category_id, sort=sort, order=order,
+        )
+    query = db.query(models.Product).filter(models.Product.seller_id == seller_id)
+    if not include_inactive:
+        query = query.filter(models.Product.is_active.is_(True))
+    if search:
+        pattern = f"%{search}%"
+        from sqlalchemy import or_
+        query = query.filter(
+            or_(models.Product.name.ilike(pattern), models.Product.description.ilike(pattern))
+        )
+    if category_id is not None:
+        query = query.filter(models.Product.category_id == category_id)
+    sort_map = {"price": models.Product.price, "name": models.Product.name, "stock": models.Product.stock, "newest": models.Product.created_at}
+    if sort in sort_map:
+        col = sort_map[sort]
+        query = query.order_by(col.desc() if order == "desc" else col.asc())
+    else:
+        query = query.order_by(models.Product.id.desc())
+    return query.offset(skip).limit(limit).all()
 
 
 @app.post("/seller/products", response_model=schemas.Product, status_code=201, tags=["Seller Products"], summary="Create seller product")
@@ -467,6 +502,64 @@ def seller_patch_price(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found or not authorized")
     return product
+
+# SELLER PROFILE
+@app.get("/seller/profile", response_model=schemas.SellerProfile, tags=["Seller Dashboard"], summary="Get seller profile")
+def get_seller_profile(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_seller),
+):
+    return current_user
+
+@app.put("/seller/profile", response_model=schemas.SellerProfile, tags=["Seller Dashboard"], summary="Update seller profile")
+def update_seller_profile(
+    update: schemas.SellerProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_seller),
+):
+    if update.store_name is not None:
+        current_user.store_name = update.store_name
+    if update.store_description is not None:
+        current_user.store_description = update.store_description
+    if update.logo_url is not None:
+        current_user.logo_url = update.logo_url
+    if update.phone is not None:
+        current_user.phone = update.phone
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+# PRODUCT IMAGE UPLOAD
+@app.post("/seller/products/{product_id}/images", tags=["Seller Products"], summary="Upload product image")
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    scope=Depends(resolve_seller_scope),
+):
+    current_user, seller_id, is_aggregated = scope
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if not is_aggregated and current_user.role == "seller" and product.seller_id != seller_id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this product")
+
+    allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="File type not allowed. Use JPEG, PNG, WebP, or GIF.")
+
+    ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"product_{product_id}_{uuid.uuid4().hex[:8]}.{ext}"
+    file_path = UPLOAD_DIR / filename
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    image_url = f"/uploads/{filename}"
+    product.image_url = image_url
+    db.commit()
+    db.refresh(product)
+    return {"image_url": image_url, "product": schemas.Product.model_validate(product)}
 
 # ADMIN PRODUCT MANAGEMENT
 @app.delete("/admin/products/{product_id}", tags=["Products"], summary="Admin: delete any product")
@@ -650,11 +743,26 @@ def update_shipment_endpoint(shipment_id: int, status: str,db: Session = Depends
 # SELLER ORDERS
 @app.get("/seller/orders", response_model=List[schemas.SellerOrderResponse], tags=["Seller Orders"], summary="Seller incoming orders")
 def seller_orders(
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
     scope=Depends(resolve_seller_scope),
 ):
     _, seller_id, is_aggregated = scope
-    return crud.get_seller_orders(db, None if is_aggregated else seller_id)
+    all_orders = crud.get_seller_orders(db, None if is_aggregated else seller_id)
+    if status:
+        all_orders = [o for o in all_orders if o.status.lower() == status.lower()]
+    if search:
+        s = search.lower()
+        all_orders = [
+            o for o in all_orders
+            if s in str(o.id)
+            or s in o.customer.name.lower()
+            or s in o.customer.email.lower()
+        ]
+    return all_orders[skip:skip + limit]
 
 
 @app.patch(

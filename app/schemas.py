@@ -22,11 +22,17 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     password: Optional[str] = None
     role: Optional[str] = None
+    store_name: Optional[str] = None
+    store_description: Optional[str] = None
+    logo_url: Optional[str] = None
 
 class User(UserBase):
     id: int
     is_active: bool
     created_at: datetime
+    store_name: Optional[str] = None
+    store_description: Optional[str] = None
+    logo_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -109,6 +115,7 @@ class ProductBase(BaseModel):
     stock: int
     category_id: int
     seller_id: Optional[int] = None
+    image_url: Optional[str] = None
 
 class Product(ProductBase):
     id: int
@@ -359,3 +366,23 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     used_authentication: bool = False
+
+# SELLER PROFILE
+class SellerProfileUpdate(BaseModel):
+    store_name: Optional[str] = None
+    store_description: Optional[str] = None
+    logo_url: Optional[str] = None
+    phone: Optional[str] = None
+
+class SellerProfile(BaseModel):
+    id: int
+    name: str
+    email: str
+    phone: Optional[str] = None
+    store_name: Optional[str] = None
+    store_description: Optional[str] = None
+    logo_url: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

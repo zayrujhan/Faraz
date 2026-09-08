@@ -15,3 +15,9 @@ scripts/test_report.json
 
 # IDE / editor
 .cursor/
+
+# Local SRS (not published to GitHub)
+docs/SRS.md
+
+# Uploads
+uploads/

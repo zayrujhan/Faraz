@@ -15,6 +15,10 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    store_name = Column(String, nullable=True)
+    store_description = Column(Text, nullable=True)
+    logo_url = Column(String, nullable=True)
+
     addresses = relationship("Address", back_populates="user")
     orders = relationship("Order", back_populates="user")
     cart = relationship("Cart", back_populates="user", uselist=False)
@@ -61,6 +65,7 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("categories.id"))
     seller_id = Column(Integer, ForeignKey("users.id"))
     is_active = Column(Boolean, default=True, nullable=False)
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     category = relationship("Category", back_populates="products")

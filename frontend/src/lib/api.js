@@ -19,7 +19,7 @@ export async function api(path, options = {}) {
   return response.status === 204 ? null : response.json()
 }
 
-export const formatPrice = (price) => Number(price).toLocaleString(undefined, {
-  style: 'currency',
-  currency: 'USD',
-})
+export const formatPrice = (price) => `TK. ${Number(price).toLocaleString(undefined, {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})}`

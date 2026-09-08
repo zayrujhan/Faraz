@@ -4,6 +4,8 @@ import Register from "./pages/Register";
 import Shop from "./pages/Productpage";
 import ProductDetails from "./pages/ProductDetails";
 import ShoppingCart from "./pages/ShoppingCart";
+import ShippingDetails from "./pages/shippingDetails";
+import PaymentDetails from "./pages/PaymentDetails";
 import { useEffect, useState } from 'react'
 
 function App() {
@@ -19,6 +21,8 @@ function App() {
     if (pathname === '/register') return <Register />
     if (pathname === '/shop') return <Shop search={new URLSearchParams(queryString).get('search') || ''} />
     if (pathname === '/cart') return <ShoppingCart />
+    if (pathname === '/shipping') return <ShippingDetails />
+    if (pathname === '/payment') return <PaymentDetails />
     if (pathname.startsWith('/products/')) return <ProductDetails productId={pathname.split('/')[2]} />
     return <HomePage />
 }

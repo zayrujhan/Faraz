@@ -33,8 +33,21 @@ class Address(Base):
     state = Column(String, nullable=False)
     country = Column(String, nullable=False)
     postal_code = Column(String, nullable=False)
+    shipping_method_id = Column(Integer, ForeignKey("shipping_methods.id"), nullable=True)
 
     user = relationship("User", back_populates="addresses")
+    shipping_method = relationship("ShippingMethod", back_populates="addresses")
+
+class ShippingMethod(Base):
+    __tablename__ = "shipping_methods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    price = Column(Float, nullable=False, default=0)
+    delivery_estimate = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    addresses = relationship("Address", back_populates="shipping_method")
 
 # CATEGORY 
 class Category(Base):
@@ -69,6 +82,23 @@ class Product(Base):
     cart_items = relationship("CartItem", back_populates="product")
     wishlist_entries = relationship("Wishlist", back_populates="product")
     seller = relationship("User", back_populates="products")  
+    images = relationship(
+        "ProductImage",
+        back_populates="product",
+        cascade="all, delete-orphan"
+    )
+
+#Productimage
+class ProductImage(Base):
+    __tablename__ = "product_images"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    image_url = Column(String, nullable=False)
+    is_primary = Column(Boolean, default=False, nullable=False)
+
+    product = relationship("Product", back_populates="images")
+
 
 # CART 
 class Cart(Base):
@@ -135,6 +165,15 @@ class Payment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="payment")
+
+class PaymentMethod(Base):
+    __tablename__ = "payment_methods"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(String, nullable=False)
+    requires_card_details = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
 
 # SHIPMENT
 class Shipment(Base):

@@ -38,6 +38,7 @@ class AddressBase(BaseModel):
     state: str
     country: str
     postal_code: str
+    shipping_method_id: Optional[int] = None
 
 class AddressUpdate(BaseModel):
     street: Optional[str] = None
@@ -45,6 +46,7 @@ class AddressUpdate(BaseModel):
     state: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
+    shipping_method_id: Optional[int] = None
 
 class Address(AddressBase):
     id: int
@@ -55,6 +57,18 @@ class Address(AddressBase):
 
 class AddressCreate(AddressBase):
     pass
+
+class ShippingMethodBase(BaseModel):
+    name: str
+    price: float
+    delivery_estimate: str
+
+class ShippingMethod(ShippingMethodBase):
+    id: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
 
 # CATEGORY SCHEMAS
 class CategoryBase(BaseModel):
@@ -164,6 +178,34 @@ class Order(OrderBase):
 
     class Config:
         from_attributes = True
+
+class PaymentMethod(BaseModel):
+    id: int
+    name: str
+    description: str
+    requires_card_details: bool
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class CheckoutRequest(BaseModel):
+    payment_method_id: int
+
+class PaymentResponse(BaseModel):
+    id: int
+    order_id: int
+    amount: float
+    method: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class CheckoutResponse(BaseModel):
+    order: Order
+    payment: PaymentResponse
 
 # REVIEW SCHEMAS
 class ReviewBase(BaseModel):

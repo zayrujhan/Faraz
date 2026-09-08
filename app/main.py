@@ -22,6 +22,9 @@ from .services import product_service, seller_analytics
 from .services.chatbot import generate_chat_reply
 
 models.Base.metadata.create_all(bind=engine)
+with Local_Session() as db:
+    crud.ensure_default_shipping_methods(db)
+    crud.ensure_default_payment_methods(db)
 
 app = FastAPI(
     title="Faraz E-Commerce API",
@@ -211,6 +214,14 @@ def update_address(
 @app.get("/addresses/", response_model=List[schemas.Address], tags=["Addresses"], summary="List current user's addresses")
 def list_addresses(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return crud.get_addresses(db, user_id=current_user.id)
+
+@app.get("/shipping-methods/", response_model=List[schemas.ShippingMethod], tags=["Addresses"], summary="List available shipping methods")
+def list_shipping_methods(db: Session = Depends(get_db)):
+    return crud.get_shipping_methods(db)
+
+@app.get("/payment-methods/", response_model=List[schemas.PaymentMethod], tags=["Payments"], summary="List available payment methods")
+def list_payment_methods(db: Session = Depends(get_db)):
+    return crud.get_payment_methods(db)
 
 # CURRENT LOGGED-IN USER
 @app.get("/me", response_model=schemas.User, tags=["Auth"], summary="Get current user profile")
@@ -550,6 +561,14 @@ def create_order_from_cart(
         if "empty" in msg:
             raise HTTPException(status_code=400, detail=str(e))
         # fallback
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/checkout/", response_model=schemas.CheckoutResponse, status_code=201, tags=["Payments"], summary="Create an order and pending payment from the current cart")
+def checkout(checkout_data: schemas.CheckoutRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    try:
+        order, payment = crud.checkout_cart_for_user(db, user_id=current_user.id, payment_method_id=checkout_data.payment_method_id)
+        return {"order": order, "payment": payment}
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/orders/", response_model=List[schemas.Order], tags=["Orders"], summary="List orders for current user")

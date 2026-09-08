@@ -306,6 +306,64 @@ def create_order_from_cart_for_user(db: Session, user_id: int) -> models.Order:
 
     return order
 
+def get_payment_methods(db: Session):
+    return db.query(models.PaymentMethod).filter(models.PaymentMethod.is_active.is_(True)).all()
+
+def ensure_default_payment_methods(db: Session):
+    defaults = [
+        {"name": "Credit Card", "description": "Pay securely with your card.", "requires_card_details": True},
+        {"name": "bKash", "description": "Mobile banking service.", "requires_card_details": False},
+    ]
+    for method in defaults:
+        if not db.query(models.PaymentMethod).filter(models.PaymentMethod.name == method["name"]).first():
+            db.add(models.PaymentMethod(**method))
+    db.commit()
+
+def checkout_cart_for_user(db: Session, user_id: int, payment_method_id: int):
+    cart = db.query(models.Cart).filter(models.Cart.user_id == user_id).first()
+    address = db.query(models.Address).filter(models.Address.user_id == user_id).first()
+    method = db.query(models.PaymentMethod).filter(models.PaymentMethod.id == payment_method_id, models.PaymentMethod.is_active.is_(True)).first()
+    if not cart:
+        raise ValueError("Cart not found")
+    if not address:
+        raise ValueError("Address not found")
+    if not address.shipping_method_id:
+        raise ValueError("Shipping method not selected")
+    if not method:
+        raise ValueError("Payment method not found")
+    cart_items = db.query(models.CartItem).filter(models.CartItem.cart_id == cart.id).all()
+    if not cart_items:
+        raise ValueError("Cart is empty")
+    products = []
+    for item in cart_items:
+        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+        if not product:
+            raise ValueError(f"Product {item.product_id} not found")
+        if product.stock is not None and item.quantity > product.stock:
+            raise ValueError(f"Insufficient stock for product {product.name}")
+        products.append((item, product))
+
+    shipping_method = db.query(models.ShippingMethod).filter(models.ShippingMethod.id == address.shipping_method_id).first()
+    shipping_cost = shipping_method.price if shipping_method else 0
+    total = sum(item.quantity * product.price for item, product in products) + shipping_cost
+    try:
+        order = models.Order(user_id=user_id, address_id=address.id, total_amount=total, status="pending")
+        db.add(order)
+        db.flush()
+        for item, product in products:
+            db.add(models.OrderItem(order_id=order.id, product_id=product.id, quantity=item.quantity, price=product.price, status="Pending"))
+            product.stock -= item.quantity
+            db.delete(item)
+        payment = models.Payment(order_id=order.id, amount=total, method=method.name, status="pending")
+        db.add(payment)
+        db.commit()
+        db.refresh(order)
+        db.refresh(payment)
+        return order, payment
+    except Exception:
+        db.rollback()
+        raise
+
 # CATEGORY CRUD
 def _validate_category_parent(db: Session, parent_id: Optional[int]) -> None:
     if parent_id is None:
@@ -418,6 +476,19 @@ def update_address(db: Session, db_address: models.Address, update: schemas.Addr
     db.commit()
     db.refresh(db_address)
     return db_address
+
+def get_shipping_methods(db: Session):
+    return db.query(models.ShippingMethod).filter(models.ShippingMethod.is_active.is_(True)).all()
+
+def ensure_default_shipping_methods(db: Session):
+    defaults = [
+        {"name": "Free Shipping", "price": 0, "delivery_estimate": "Between 2 - 5 working days"},
+        {"name": "Next Day Delivery", "price": 100, "delivery_estimate": "24 hours from checkout"},
+    ]
+    for method in defaults:
+        if not db.query(models.ShippingMethod).filter(models.ShippingMethod.name == method["name"]).first():
+            db.add(models.ShippingMethod(**method))
+    db.commit()
 
 # WISHLIST
 def add_to_wishlist(db: Session, user_id: int, product_id: int) -> models.Wishlist:

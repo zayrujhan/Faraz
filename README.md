@@ -1,6 +1,6 @@
 # Faraz
 
-Backend API — open Swagger at `/docs` after starting the server.
+Full-stack e-commerce platform with a React frontend and FastAPI backend.
 
 ## Setup
 
@@ -84,7 +84,19 @@ Skips automatically if demo users already exist.
 uvicorn app.main:app --reload
 ```
 
-### 8. Open Swagger
+### 8. Run the Frontend
+
+In a separate terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend runs at http://localhost:5173
+
+### 9. Open Swagger
 
 http://127.0.0.1:8000/docs
 
@@ -99,3 +111,46 @@ http://127.0.0.1:8000/docs
 | customer | customer1@example.com | password123 |
 
 Use **POST /login**, then click **Authorize** in Swagger and paste: `Bearer <access_token>`
+
+---
+
+## Features
+
+### Customer Frontend
+
+- Browse products with category filtering and search
+- Product detail pages with reviews
+- Shopping cart with quantity management
+- User registration and login
+
+### Seller Dashboard (`/#/seller`)
+
+Sellers log in and are automatically redirected to the dashboard.
+
+- **Dashboard** — Overview metrics (total products, active products, pending orders, total sales), low stock alerts, recent orders, best selling products
+- **Products** — List, create, edit, delete products with image upload, stock/price management, category filtering, search
+- **Orders** — View orders containing your products, update item statuses (Pending → Processing → Shipped → Delivered), filter by status
+- **Analytics** — Revenue charts, top selling products, sales summary with 7/30/90 day ranges
+- **Settings** — Store profile (store name, description, phone, logo)
+
+### Backend API
+
+- JWT authentication with role-based access (customer, seller, admin)
+- Product CRUD with categories (2-level hierarchy)
+- Cart and order management
+- Wishlist and reviews
+- Seller-scoped product and order management
+- Seller dashboard analytics
+- AI chatbot (OpenRouter integration)
+- Image upload for products (local file storage)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | FastAPI, SQLAlchemy, PostgreSQL, Alembic |
+| Frontend | React 19, Vite 8, Tailwind CSS 4, React Router |
+| Auth | JWT (python-jose), bcrypt |
+| Chatbot | OpenRouter API (DeepSeek) |

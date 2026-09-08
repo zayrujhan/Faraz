@@ -26,7 +26,9 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         password=hash_password(user.password),
         phone=user.phone,
-        role=user.role or "customer"
+        role=user.role or "customer",
+        store_name=getattr(user, "store_name", None),
+        store_description=getattr(user, "store_description", None),
     )
     db.add(db_user)
     db.commit()
@@ -48,6 +50,12 @@ def update_user(db: Session, user: models.User, update: schemas.UserUpdate) -> m
         user.password = hash_password(update.password)
     if update.role:
         user.role = update.role
+    if update.store_name is not None:
+        user.store_name = update.store_name
+    if update.store_description is not None:
+        user.store_description = update.store_description
+    if update.logo_url is not None:
+        user.logo_url = update.logo_url
     db.commit()
     db.refresh(user)
     return user

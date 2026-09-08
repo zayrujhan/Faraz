@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -34,12 +35,12 @@ function HomePage() {
     return (
         <>
             <Navbar />
-            <section className="mx-6 md:mx-12 lg:mx-16 my-8 border border-gray-300 rounded-md 
+            <section className="mx-6 md:mx-12 lg:mx-16 my-8 border border-gray-300 rounded-md
                     min-h-[270px] flex flex-col items-center justify-center">
                 <h1 className="text-2xl md:text-3xl font-medium text-gray-700">Tagline describing your e-shop</h1>
-                <a href="#/shop" className="bg-gray-700 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                <Link to="/shop" className="bg-gray-700 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
                     Shop Now
-                </a>
+                </Link>
             </section>
 
             <section className="mx-6 md:mx-12 lg:mx-16 my-10 border border-gray-300 rounded-md py-8 px-6 text-center">

@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, setToken } from '../lib/api'
 
 function Register() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const navigate = useNavigate()
 
   const update = (event) => setForm({ ...form, [event.target.name]: event.target.value })
 
@@ -24,7 +26,7 @@ function Register() {
         body: credentials,
       })
       setToken(session.access_token)
-      window.location.hash = '#/'
+      navigate('/')
     } catch (err) {
       setError(err.message)
     } finally {
@@ -42,7 +44,7 @@ function Register() {
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <button disabled={submitting} type="submit" className="w-full bg-gray-700 text-white py-2 rounded-md hover:bg-gray-800 disabled:opacity-60">{submitting ? 'Creating account...' : 'Create account'}</button>
     </form>
-    <p className="text-center text-sm text-gray-500 mt-6">Already registered? <a href="#/login" className="text-gray-700 font-medium hover:underline">Login</a></p>
+    <p className="text-center text-sm text-gray-500 mt-6">Already registered? <Link to="/login" className="text-gray-700 font-medium hover:underline">Login</Link></p>
   </div></div>
 }
 

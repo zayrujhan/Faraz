@@ -15,3 +15,6 @@ scripts/test_report.json
 
 # IDE / editor
 .cursor/
+
+# Uploads
+uploads/

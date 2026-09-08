@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import HomePage from './pages/Home'
 import Login from './pages/login'
@@ -17,7 +17,15 @@ import Settings from './pages/seller/Settings'
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth()
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    )
+  }
+
   if (!user) return <Navigate to="/login" replace />
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
   return children
@@ -38,6 +46,11 @@ function RegisterRedirect() {
   return <Register />
 }
 
+function ProductDetailsWrapper() {
+  const { id } = useParams()
+  return <ProductDetails productId={id} />
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -45,7 +58,7 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterRedirect />} />
       <Route path="/" element={<HomePage />} />
       <Route path="/shop" element={<Shop />} />
-      <Route path="/products/:id" element={<ProductDetails />} />
+      <Route path="/products/:id" element={<ProductDetailsWrapper />} />
       <Route path="/cart" element={<ShoppingCart />} />
 
       <Route

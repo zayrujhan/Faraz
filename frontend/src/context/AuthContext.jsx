@@ -8,7 +8,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const fetchUser = useCallback(async () => {
-    if (!getToken()) { setLoading(false); return }
+    if (!getToken()) {
+      setLoading(false)
+      return
+    }
     try {
       const me = await api('/me')
       setUser(me)
@@ -20,7 +23,9 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  useEffect(() => { fetchUser() }, [fetchUser])
+  useEffect(() => {
+    fetchUser()
+  }, [fetchUser])
 
   const login = async (email, password) => {
     const body = new URLSearchParams({ username: email, password })

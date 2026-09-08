@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
 import Footer from '../components/Footer'
 import { api } from '../lib/api'
 
-function Shop() {
-  const [searchParams] = useSearchParams()
-  const search = searchParams.get('search') || ''
+function Shop({ search }) {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -30,7 +27,7 @@ function Shop() {
 
   return <div className="min-h-screen bg-white"><Navbar />
     <main className="px-6 md:px-10 lg:px-16 py-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-2xl font-medium text-gray-700">Shop</h1><p className="text-sm text-gray-500">{search ? `Results for "${search}"` : 'Browse our catalogue'}</p></div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><h1 className="text-2xl font-medium text-gray-700">Shop</h1><p className="text-sm text-gray-500">{search ? `Results for “${search}”` : 'Browse our catalogue'}</p></div>
         <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="border border-gray-300 rounded-md px-3 py-2 text-sm"><option value="">All categories</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select>
       </div>
       {status ? <p className="mt-8 text-gray-500">{status}</p> : products.length === 0 ? <p className="mt-8 text-gray-500">No products match your selection.</p> : <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5 mt-8">{products.map((product) => <ProductCard key={product.id} product={product} />)}</div>}

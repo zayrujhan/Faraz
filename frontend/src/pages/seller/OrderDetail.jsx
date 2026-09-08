@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, MapPin, User, Package } from 'lucide-react'
 import { api, formatPrice, formatDate } from '../../lib/api'
 import StatusBadge from '../../components/ui/StatusBadge'
@@ -8,16 +8,20 @@ const STATUSES = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']
 
 export default function OrderDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const loadOrder = async () => {
     setLoading(true)
+    setError('')
     try {
       const orders = await api(`/seller/orders?search=${id}`)
       setOrder(orders.find(o => String(o.id) === id) || null)
-    } catch (e) { setError(e.message) }
+    } catch (e) {
+      setError(e.message)
+    }
     setLoading(false)
   }
 
@@ -30,19 +34,48 @@ export default function OrderDetail() {
         body: JSON.stringify({ status: newStatus }),
       })
       loadOrder()
-    } catch (e) { alert(e.message) }
+    } catch (e) {
+      setError(e.message)
+    }
   }
 
-  if (loading) return <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
-  if (error) return <p className="text-red-600">{error}</p>
-  if (!order) return <p className="text-gray-500">Order not found.</p>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-10 bg-gray-100 rounded w-48 animate-pulse" />
+        <div className="h-64 bg-gray-100 rounded-lg animate-pulse" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => navigate('/seller/orders')} className="text-sm text-gray-500 hover:text-gray-700">
+          &larr; Back to orders
+        </button>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>
+      </div>
+    )
+  }
+
+  if (!order) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => navigate('/seller/orders')} className="text-sm text-gray-500 hover:text-gray-700">
+          &larr; Back to orders
+        </button>
+        <p className="text-gray-500">Order not found.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
-        <Link to="/seller/orders" className="p-1.5 rounded hover:bg-gray-100">
+        <button onClick={() => navigate('/seller/orders')} className="p-1.5 rounded hover:bg-gray-100">
           <ArrowLeft className="w-5 h-5 text-gray-600" />
-        </Link>
+        </button>
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Order #{order.id}</h1>
           <p className="text-sm text-gray-500">Placed on {formatDate(order.created_at)}</p>
@@ -102,14 +135,18 @@ export default function OrderDetail() {
                 </td>
                 <td className="px-5 py-3 text-center text-sm text-gray-600">{item.quantity}</td>
                 <td className="px-5 py-3 text-right text-sm text-gray-900">{formatPrice(item.price)}</td>
-                <td className="px-5 py-3"><StatusBadge status={item.status} /></td>
+                <td className="px-5 py-3">
+                  <StatusBadge status={item.status} />
+                </td>
                 <td className="px-5 py-3">
                   <select
                     value={item.status}
                     onChange={(e) => updateItemStatus(item.id, e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-gray-400"
                   >
-                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    {STATUSES.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
                   </select>
                 </td>
               </tr>

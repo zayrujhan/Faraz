@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { Package, ShoppingCart, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react'
 import { api, formatPrice, formatDate } from '../../lib/api'
 import MetricCard from '../../components/ui/MetricCard'
-import StatusBadge from '../../components/ui/StatusBadge'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
@@ -11,16 +10,36 @@ export default function Dashboard() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const c = new AbortController()
-    api('/seller/dashboard', { signal: c.signal })
+    const controller = new AbortController()
+
+    api('/seller/dashboard', { signal: controller.signal })
       .then(setData)
-      .catch((e) => { if (e.name !== 'AbortError') setError(e.message) })
+      .catch((e) => {
+        if (e.name !== 'AbortError') setError(e.message)
+      })
       .finally(() => setLoading(false))
-    return () => c.abort()
+
+    return () => controller.abort()
   }, [])
 
-  if (loading) return <div className="space-y-4">{[1,2,3,4].map(i => <div key={i} className="h-28 bg-gray-200 rounded-lg animate-pulse" />)}</div>
-  if (error) return <p className="text-red-600">{error}</p>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-28 bg-gray-200 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        {error}
+      </div>
+    )
+  }
+
   if (!data) return null
 
   return (
@@ -43,8 +62,12 @@ export default function Dashboard() {
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-600" />
               <div>
-                <p className="text-sm font-medium text-yellow-800">{data.low_stock_products} products low on stock</p>
-                <Link to="/seller/products" className="text-xs text-yellow-600 underline">View products</Link>
+                <p className="text-sm font-medium text-yellow-800">
+                  {data.low_stock_products} products low on stock
+                </p>
+                <Link to="/seller/products" className="text-xs text-yellow-600 underline">
+                  View products
+                </Link>
               </div>
             </div>
           )}
@@ -52,8 +75,12 @@ export default function Dashboard() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-red-600" />
               <div>
-                <p className="text-sm font-medium text-red-800">{data.out_of_stock_products} products out of stock</p>
-                <Link to="/seller/products" className="text-xs text-red-600 underline">View products</Link>
+                <p className="text-sm font-medium text-red-800">
+                  {data.out_of_stock_products} products out of stock
+                </p>
+                <Link to="/seller/products" className="text-xs text-red-600 underline">
+                  View products
+                </Link>
               </div>
             </div>
           )}
@@ -64,7 +91,9 @@ export default function Dashboard() {
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-gray-900">Recent Orders</h2>
-            <Link to="/seller/orders" className="text-xs text-gray-500 hover:text-gray-700 underline">View all</Link>
+            <Link to="/seller/orders" className="text-xs text-gray-500 hover:text-gray-700 underline">
+              View all
+            </Link>
           </div>
           {data.recent_orders.length === 0 ? (
             <p className="text-sm text-gray-500">No recent orders.</p>
@@ -78,7 +107,9 @@ export default function Dashboard() {
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900">Order #{order.order_id}</p>
-                    <p className="text-xs text-gray-500">{order.customer_name} &middot; {order.item_count} items</p>
+                    <p className="text-xs text-gray-500">
+                      {order.customer_name} &middot; {order.item_count} items
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">{formatPrice(order.revenue)}</p>

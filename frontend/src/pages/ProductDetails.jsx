@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
 import { Star } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import ProductCard from '../components/ProductCard'
 import Footer from '../components/Footer'
 import { api, formatPrice, getToken } from '../lib/api'
 
-function ProductDetails() {
-  const { id: productId } = useParams()
+function ProductDetails({ productId }) {
   const [product, setProduct] = useState(null)
   const [similar, setSimilar] = useState([])
   const [reviews, setReviews] = useState([])
@@ -39,48 +37,13 @@ function ProductDetails() {
 
   if (status) return <><Navbar /><main className="p-10 text-gray-500">{status}</main></>
   return <div className="min-h-screen bg-white"><Navbar /><main className="px-6 md:px-10 lg:px-16 py-8">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-      <div className="border border-gray-300 rounded-md h-[350px] flex items-center justify-center bg-gray-50">
-        {product.image_url ? (
-          <img src={`http://localhost:8000${product.image_url}`} alt={product.name} className="w-full h-full object-contain rounded-md" />
-        ) : (
-          <span className="text-gray-400">No image available</span>
-        )}
-      </div>
-      <div>
-        <h1 className="text-2xl font-medium text-gray-700">{product.name}</h1>
-        <p className="mt-4 text-xl font-medium text-gray-700">{formatPrice(product.price)}</p>
-        <p className="mt-2 text-sm text-gray-500">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</p>
-        <hr className="my-4 border-gray-200" />
-        <h2 className="text-sm font-medium text-gray-600">Product details</h2>
-        <p className="text-sm text-gray-500 mt-3 leading-5">{product.description || 'No description has been added for this product.'}</p>
-        <button disabled={product.stock < 1} onClick={addToCart} className="mt-6 bg-gray-700 hover:bg-gray-800 text-white text-sm px-6 py-2 rounded-md disabled:opacity-50">Add To Cart</button>
-        {cartMessage && <p className="mt-3 text-sm text-gray-600">{cartMessage}</p>}
-      </div>
-    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12"><div className="border border-gray-300 rounded-md h-[350px] flex items-center justify-center text-gray-400">No image available</div>
+      <div><h1 className="text-2xl font-medium text-gray-700">{product.name}</h1><p className="mt-4 text-xl font-medium text-gray-700">{formatPrice(product.price)}</p><p className="mt-2 text-sm text-gray-500">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</p><hr className="my-4 border-gray-200" /><h2 className="text-sm font-medium text-gray-600">Product details</h2><p className="text-sm text-gray-500 mt-3 leading-5">{product.description || 'No description has been added for this product.'}</p>
+        <button disabled={product.stock < 1} onClick={addToCart} className="mt-6 bg-gray-700 hover:bg-gray-800 text-white text-sm px-6 py-2 rounded-md disabled:opacity-50">Add To Cart</button>{cartMessage && <p className="mt-3 text-sm text-gray-600">{cartMessage}</p>}
+      </div></div>
   </main>
-  <section className="border-y border-gray-200 py-6 px-6 md:px-10 lg:px-16">
-    <h2 className="text-xl font-medium text-gray-700">Similar Products</h2>
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5 mt-6">
-      {similar.map((item) => <ProductCard key={item.id} product={item} />)}
-    </div>
-  </section>
-  <section className="px-6 md:px-10 lg:px-16 py-6">
-    <h2 className="text-xl font-medium text-gray-700">Reviews</h2>
-    {reviews.length === 0 ? (
-      <p className="mt-4 text-sm text-gray-500">There are no reviews yet.</p>
-    ) : reviews.map((review) => (
-      <article key={review.id} className="border-b border-gray-100 py-4">
-        <div className="flex items-center gap-1">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Star key={index} className={`w-4 h-4 ${index < review.rating ? 'fill-gray-600 text-gray-600' : 'text-gray-300'}`} />
-          ))}
-        </div>
-        <p className="mt-2 text-sm text-gray-600">{review.comment || 'No comment provided.'}</p>
-      </article>
-    ))}
-  </section>
-  <Footer />
+  <section className="border-y border-gray-200 py-6 px-6 md:px-10 lg:px-16"><h2 className="text-xl font-medium text-gray-700">Similar Products</h2><div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-5 mt-6">{similar.map((item) => <ProductCard key={item.id} product={item} />)}</div></section>
+  <section className="px-6 md:px-10 lg:px-16 py-6"><h2 className="text-xl font-medium text-gray-700">Reviews</h2>{reviews.length === 0 ? <p className="mt-4 text-sm text-gray-500">There are no reviews yet.</p> : reviews.map((review) => <article key={review.id} className="border-b border-gray-100 py-4"><div className="flex items-center gap-1">{Array.from({ length: 5 }, (_, index) => <Star key={index} className={`w-4 h-4 ${index < review.rating ? 'fill-gray-600 text-gray-600' : 'text-gray-300'}`} />)}</div><p className="mt-2 text-sm text-gray-600">{review.comment || 'No comment provided.'}</p></article>)}</section><Footer />
   </div>
 }
 

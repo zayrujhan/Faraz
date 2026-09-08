@@ -18,7 +18,16 @@ export default function Analytics() {
       .finally(() => setLoading(false))
   }, [days])
 
-  if (loading) return <div className="space-y-4">{[1,2,3,4].map(i => <div key={i} className="h-28 bg-gray-200 rounded-lg animate-pulse" />)}</div>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-28 bg-gray-200 rounded-lg animate-pulse" />
+        ))}
+      </div>
+    )
+  }
+
   if (!data) return null
 
   const maxDailyRevenue = Math.max(...data.daily_sales.map(d => d.revenue), 1)
@@ -28,7 +37,9 @@ export default function Analytics() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Analytics</h1>
-          <p className="text-sm text-gray-500 mt-1">Sales performance for the last {days} days</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Sales performance for the last {days} days
+          </p>
         </div>
         <SelectFilter
           value={days}
@@ -55,7 +66,10 @@ export default function Analytics() {
         ) : (
           <div className="flex items-end gap-1 h-48">
             {data.daily_sales.map((d) => (
-              <div key={d.date} className="flex-1 flex flex-col items-center justify-end h-full group relative">
+              <div
+                key={d.date}
+                className="flex-1 flex flex-col items-center justify-end h-full group relative"
+              >
                 <div
                   className="w-full bg-gray-900 rounded-t-sm min-h-[2px] transition-all hover:bg-gray-700"
                   style={{ height: `${(d.revenue / maxDailyRevenue) * 100}%` }}
@@ -77,9 +91,18 @@ export default function Analytics() {
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Top Selling Products</h2>
           <DataGrid
             columns={[
-              { key: 'product_name', label: 'Product', render: (r) => <span className="font-medium text-gray-900">{r.product_name}</span> },
+              {
+                key: 'product_name',
+                label: 'Product',
+                render: (r) => <span className="font-medium text-gray-900">{r.product_name}</span>,
+              },
               { key: 'units_sold', label: 'Units Sold', align: 'right' },
-              { key: 'revenue', label: 'Revenue', align: 'right', render: (r) => formatPrice(r.revenue) },
+              {
+                key: 'revenue',
+                label: 'Revenue',
+                align: 'right',
+                render: (r) => formatPrice(r.revenue),
+              },
             ]}
             data={data.top_selling_products}
           />

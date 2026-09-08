@@ -21,7 +21,6 @@ import OrderDetail from './pages/seller/OrderDetail'
 import Analytics from './pages/seller/Analytics'
 import Settings from './pages/seller/Settings'
 import AdminDashboard from './pages/AdminDashboard'
-import ChatWidget from './components/ChatWidget'
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth()
@@ -95,5 +94,5 @@ function AppRoutes() {
 }
 
 export default function App() {
-  return <HashRouter><AuthProvider><AppRoutes /><ChatWidget /></AuthProvider></HashRouter>
+  return <HashRouter><AuthProvider><AppRoutes /></AuthProvider></HashRouter>
 }

@@ -21,3 +21,6 @@ docs/SRS.md
 
 # Uploads
 uploads/
+
+backend.err.log
+backend.out.log

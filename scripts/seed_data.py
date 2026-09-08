@@ -121,6 +121,7 @@ def seed_products(db, subcategories, top_level, sellers, product_count):
             price=round(random.uniform(5, 500), 2),
             stock=random.randint(0, 250),
             category_id=category.id,
+            image_url=f"https://picsum.photos/seed/{index}/400/400",
         )
         create_product(db, product=product, seller_id=random.choice(seller_ids))
         created += 1

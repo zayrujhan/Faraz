@@ -1,17 +1,19 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, ImageIcon } from 'lucide-react'
 import { api, buildQuery, formatPrice } from '../../lib/api'
+import { productImage } from '../../lib/images'
 import DataGrid from '../../components/ui/DataGrid'
 import FilterBar, { SearchInput, SelectFilter } from '../../components/ui/FilterBar'
 import Pagination from '../../components/ui/Pagination'
 import StatusBadge from '../../components/ui/StatusBadge'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 
 export default function ProductList() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
@@ -35,6 +37,11 @@ export default function ProductList() {
       }
       const data = await api(`/seller/products${buildQuery(params)}`)
       setProducts(data)
+      // The API currently returns no total, so we approximate using page length for the demo.
+      setTotal((prev) => {
+        if (data.length === PAGE_SIZE) return Math.max(prev, page * PAGE_SIZE + 1)
+        return (page - 1) * PAGE_SIZE + data.length
+      })
     } catch (e) {
       setError(e.message)
     }
@@ -56,7 +63,7 @@ export default function ProductList() {
       } else {
         await api(`/seller/products/${product.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ ...product, stock: product.stock }),
+          body: JSON.stringify({ ...product, stock: product.stock, is_active: true }),
         })
       }
       loadProducts()
@@ -66,7 +73,7 @@ export default function ProductList() {
   }
 
   const deleteProduct = async (product) => {
-    if (!confirm(`Delete "${product.name}"?`)) return
+    if (!confirm(`Permanently delete "${product.name}"?`)) return
     try {
       await api(`/seller/products/${product.id}`, { method: 'DELETE' })
       loadProducts()
@@ -78,18 +85,26 @@ export default function ProductList() {
   const columns = [
     {
       key: 'image',
-      label: 'Image',
-      width: 'w-16',
+      label: '',
+      width: 'w-14',
       render: (row) => (
-        row.image_url
-          ? <img src={`http://localhost:8000${row.image_url}`} alt="" className="w-10 h-10 rounded object-cover bg-gray-100" />
-          : <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-xs text-gray-400">No img</div>
+        <img
+          src={productImage(row, 40, 40)}
+          alt=""
+          className="w-10 h-10 rounded object-cover bg-gray-100"
+          onError={(e) => { e.target.src = 'https://placehold.co/40x40?text=No+Img' }}
+        />
       ),
     },
     {
       key: 'name',
-      label: 'Name',
-      render: (row) => <span className="font-medium text-gray-900">{row.name}</span>,
+      label: 'Product',
+      render: (row) => (
+        <div>
+          <p className="font-medium text-gray-900">{row.name}</p>
+          <p className="text-xs text-gray-500">{row.category?.name || 'No category'}</p>
+        </div>
+      ),
     },
     {
       key: 'price',
@@ -102,7 +117,7 @@ export default function ProductList() {
       label: 'Stock',
       align: 'right',
       render: (row) => (
-        <span className={row.stock === 0 ? 'text-red-600 font-medium' : row.stock <= 10 ? 'text-yellow-600 font-medium' : ''}>
+        <span className={row.stock === 0 ? 'text-red-600 font-semibold' : row.stock <= 10 ? 'text-orange-600 font-semibold' : ''}>
           {row.stock}
         </span>
       ),
@@ -116,7 +131,7 @@ export default function ProductList() {
       key: 'actions',
       label: '',
       align: 'right',
-      width: 'w-28',
+      width: 'w-32',
       render: (row) => (
         <div className="flex items-center justify-end gap-1">
           <button
@@ -135,7 +150,7 @@ export default function ProductList() {
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); deleteProduct(row) }}
-            className="p-1.5 rounded hover:bg-gray-100"
+            className="p-1.5 rounded hover:bg-red-50"
             title="Delete"
           >
             <Trash2 className="w-4 h-4 text-red-500" />
@@ -146,18 +161,17 @@ export default function ProductList() {
   ]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <p className="text-sm text-gray-500 mt-1">{products.length} products</p>
+          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
+          <p className="text-sm text-gray-500 mt-1">{total} products in your store</p>
         </div>
         <button
           onClick={() => navigate('/seller/products/new')}
-          className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800"
+          className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
         >
-          <Plus className="w-4 h-4" />
-          Add Product
+          <Plus className="w-4 h-4" /> Add Product
         </button>
       </div>
 
@@ -173,7 +187,7 @@ export default function ProductList() {
           value={categoryFilter}
           onChange={setCategoryFilter}
           label="All categories"
-          options={categories.map(c => ({ value: c.id, label: c.name }))}
+          options={categories.map((c) => ({ value: c.id, label: c.name }))}
         />
         <SelectFilter
           value={sort}
@@ -189,7 +203,7 @@ export default function ProductList() {
 
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3, 4, 5].map(i => (
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-14 bg-gray-100 rounded animate-pulse" />
           ))}
         </div>
@@ -201,7 +215,7 @@ export default function ProductList() {
             onRowClick={(row) => navigate(`/seller/products/${row.id}`)}
             emptyMessage="No products found."
           />
-          <Pagination page={page} totalPages={Math.ceil(100 / PAGE_SIZE)} onPageChange={setPage} />
+          <Pagination page={page} totalPages={Math.ceil(total / PAGE_SIZE)} onPageChange={setPage} />
         </>
       )}
     </div>

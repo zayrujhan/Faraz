@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Save, Upload, X } from 'lucide-react'
-import { api, uploadFile } from '../../lib/api'
+import { Save, Upload, X, ImageIcon, AlertCircle } from 'lucide-react'
+import { api, uploadFile, formatPrice } from '../../lib/api'
+import { productImage } from '../../lib/images'
 
 export default function ProductForm() {
   const { id } = useParams()
@@ -21,8 +22,8 @@ export default function ProductForm() {
 
   useEffect(() => {
     api('/categories/').then((cats) => {
-      const parents = cats.filter(c => !c.parent_id)
-      const subs = cats.filter(c => c.parent_id)
+      const parents = cats.filter((c) => !c.parent_id)
+      const subs = cats.filter((c) => c.parent_id)
       setCategories(parents)
       setSubcategories(subs)
     }).catch(() => {})
@@ -31,15 +32,21 @@ export default function ProductForm() {
   useEffect(() => {
     if (!isEdit) return
     api(`/products/${id}`).then((p) => {
-      setForm({ name: p.name, description: p.description || '', price: String(p.price), stock: String(p.stock), category_id: String(p.category_id) })
-      if (p.image_url) setCurrentImage(`http://localhost:8000${p.image_url}`)
-      const parent = subcategories.find(s => s.id === p.category_id)?.parent_id
+      setForm({
+        name: p.name,
+        description: p.description || '',
+        price: String(p.price),
+        stock: String(p.stock),
+        category_id: String(p.category_id),
+      })
+      if (p.image_url) setCurrentImage(productImage(p, 200, 200))
+      const parent = subcategories.find((s) => s.id === p.category_id)?.parent_id
       if (parent) setSelectedParent(String(parent))
       setLoading(false)
     }).catch((e) => { setError(e.message); setLoading(false) })
   }, [id, isEdit, subcategories])
 
-  const updateField = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+  const updateField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0]
@@ -55,7 +62,7 @@ export default function ProductForm() {
   }
 
   const filteredSubs = selectedParent
-    ? subcategories.filter(s => String(s.parent_id) === selectedParent)
+    ? subcategories.filter((s) => String(s.parent_id) === selectedParent)
     : subcategories
 
   const handleSubmit = async (e) => {
@@ -91,18 +98,22 @@ export default function ProductForm() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">{isEdit ? 'Edit Product' : 'New Product'}</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{isEdit ? 'Edit Product' : 'New Product'}</h1>
 
-      {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+          <AlertCircle className="w-4 h-4 mt-0.5" /> {error}
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
           <input
             required
             value={form.name}
             onChange={(e) => updateField('name', e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="e.g. Premium Wireless Headphones"
           />
         </div>
@@ -113,7 +124,7 @@ export default function ProductForm() {
             value={form.description}
             onChange={(e) => updateField('description', e.target.value)}
             rows={4}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="Describe your product..."
           />
         </div>
@@ -128,7 +139,7 @@ export default function ProductForm() {
               min="0.01"
               value={form.price}
               onChange={(e) => updateField('price', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="0.00"
             />
           </div>
@@ -140,7 +151,7 @@ export default function ProductForm() {
               min="0"
               value={form.stock}
               onChange={(e) => updateField('stock', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="0"
             />
           </div>
@@ -152,10 +163,10 @@ export default function ProductForm() {
             <select
               value={selectedParent}
               onChange={(e) => { setSelectedParent(e.target.value); updateField('category_id', '') }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Select category</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
@@ -164,11 +175,11 @@ export default function ProductForm() {
               required
               value={form.category_id}
               onChange={(e) => updateField('category_id', e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               disabled={!selectedParent}
             >
               <option value="">Select subcategory</option>
-              {filteredSubs.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {filteredSubs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
         </div>
@@ -177,30 +188,39 @@ export default function ProductForm() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
           {(imagePreview || currentImage) ? (
             <div className="relative inline-block">
-              <img src={imagePreview || currentImage} alt="" className="w-32 h-32 rounded-md object-cover border border-gray-200" />
-              <button type="button" onClick={removeImage} className="absolute -top-2 -right-2 bg-white border border-gray-300 rounded-full p-0.5 hover:bg-gray-50">
-                <X className="w-3 h-3" />
+              <img src={imagePreview || currentImage} alt="" className="w-40 h-40 rounded-lg object-cover border border-gray-200 bg-gray-100" />
+              <button
+                type="button"
+                onClick={removeImage}
+                className="absolute -top-2 -right-2 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-50 shadow"
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-gray-400">
-              <Upload className="w-6 h-6 text-gray-400" />
-              <span className="text-xs text-gray-500 mt-1">Upload</span>
+            <label className="flex flex-col items-center justify-center w-40 h-40 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50 transition">
+              <Upload className="w-8 h-8 text-gray-400" />
+              <span className="text-xs text-gray-500 mt-2 font-medium">Upload photo</span>
               <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
             </label>
           )}
+          <p className="text-xs text-gray-500 mt-2">JPG, PNG, WebP or GIF. Max 5 MB recommended.</p>
         </div>
 
         <div className="flex items-center gap-3 pt-2">
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2 rounded-md text-sm font-medium hover:bg-gray-800 disabled:opacity-60"
+            className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition"
           >
             <Save className="w-4 h-4" />
             {submitting ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
           </button>
-          <button type="button" onClick={() => navigate('/seller/products')} className="text-sm text-gray-500 hover:text-gray-700">
+          <button
+            type="button"
+            onClick={() => navigate('/seller/products')}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2"
+          >
             Cancel
           </button>
         </div>

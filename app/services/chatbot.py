@@ -13,6 +13,7 @@ Answer only questions related to: products, shipping, returns, orders, payments,
 Rules:
 - Use ONLY the retrieved context below. Do not invent products, prices, stock levels, or order statuses.
 - If the context does not contain enough information, say you do not have that information and suggest contacting support.
+- When listing products, include each product ID in the format "Product #123" so the storefront can link to it.
 - Be concise and helpful.
 """
 

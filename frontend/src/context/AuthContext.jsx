@@ -8,8 +8,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const fetchUser = useCallback(async () => {
-    if (!getToken()) {
+    const token = getToken()
+    if (!token) {
       setLoading(false)
+      setUser(null)
       return
     }
     try {
@@ -27,6 +29,7 @@ export function AuthProvider({ children }) {
     fetchUser()
   }, [fetchUser])
 
+  // Refetch user after login is called from child pages
   const login = async (email, password) => {
     const body = new URLSearchParams({ username: email, password })
     const result = await api('/login', {
@@ -40,10 +43,10 @@ export function AuthProvider({ children }) {
     return me
   }
 
-  const logout = () => {
+  const logout = useCallback(() => {
     clearToken()
     setUser(null)
-  }
+  }, [])
 
   const isSeller = user?.role === 'seller'
   const isAdmin = user?.role === 'admin'

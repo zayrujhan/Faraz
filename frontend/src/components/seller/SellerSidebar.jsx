@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Store, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, Settings, Store, Shield, LogOut } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 
-const navItems = [
+const sellerNavItems = [
   { to: '/seller', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/seller/products', icon: Package, label: 'Products' },
   { to: '/seller/orders', icon: ShoppingCart, label: 'Orders' },
@@ -10,15 +10,23 @@ const navItems = [
   { to: '/seller/settings', icon: Settings, label: 'Settings' },
 ]
 
+const adminNavItems = [
+  { to: '/admin', icon: Shield, label: 'Admin', end: true },
+  { to: '/seller', icon: LayoutDashboard, label: 'Seller Dashboard', end: true },
+  { to: '/seller/products', icon: Package, label: 'Products' },
+  { to: '/seller/orders', icon: ShoppingCart, label: 'Orders' },
+]
+
 export default function SellerSidebar() {
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
+  const navItems = isAdmin ? adminNavItems : sellerNavItems
 
   return (
     <aside className="w-60 bg-gray-900 text-white min-h-screen flex flex-col">
       <div className="px-4 py-5 border-b border-gray-700">
         <div className="flex items-center gap-2">
-          <Store className="w-5 h-5 text-gray-400" />
-          <span className="font-semibold text-sm">{user?.store_name || user?.name || 'Seller'}</span>
+          {isAdmin ? <Shield className="w-5 h-5 text-gray-400" /> : <Store className="w-5 h-5 text-gray-400" />}
+          <span className="font-semibold text-sm">{isAdmin ? 'Admin' : (user?.store_name || user?.name || 'Seller')}</span>
         </div>
       </div>
 

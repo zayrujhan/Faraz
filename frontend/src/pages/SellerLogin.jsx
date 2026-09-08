@@ -1,42 +1,41 @@
 import { useState } from 'react'
-import { ShoppingBag, ArrowRight, AlertCircle } from 'lucide-react'
+import { Store, ArrowRight, AlertCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-function Login() {
-  const { login, logout } = useAuth()
+export default function SellerLogin() {
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function handleSubmit(event) {
-    event.preventDefault()
+  async function handleSubmit(e) {
+    e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
       const me = await login(email, password)
-      if (me.role === 'seller' || me.role === 'admin') {
-        logout()
-        setError('This account is not a customer. Please use the seller or admin sign-in page.')
-      } else {
-        window.location.hash = '#/'
+      if (me.role !== 'seller') {
+        setError('This account is not a seller. Use the customer or admin sign in instead.')
+        setSubmitting(false)
+        return
       }
+      window.location.hash = '#/seller'
     } catch (err) {
       setError(err.message)
-    } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-8 shadow-lg">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-xl mb-4">
-            <ShoppingBag className="w-6 h-6 text-indigo-600" />
+            <Store className="w-6 h-6 text-indigo-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Customer Sign In</h1>
-          <p className="mt-2 text-sm text-gray-500">Sign in to shop, track orders, and write reviews.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Seller Sign In</h1>
+          <p className="mt-2 text-sm text-gray-500">Access your dashboard, products, and orders.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -47,7 +46,7 @@ function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"
-              placeholder="you@example.com"
+              placeholder="seller@example.com"
               className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -74,19 +73,14 @@ function Login() {
             type="submit"
             className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-lg transition"
           >
-            {submitting ? 'Signing in...' : <>Sign In <ArrowRight className="w-4 h-4" /></>}
+            {submitting ? 'Signing in...' : <>Go to Dashboard <ArrowRight className="w-4 h-4" /></>}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Do not have an account? <a href="#/register" className="text-indigo-600 font-medium hover:underline">Register</a>
-        </p>
-        <p className="text-center text-sm text-gray-500 mt-3">
-          <a href="#/seller/login" className="text-gray-600 hover:text-gray-900">Seller sign in</a> · <a href="#/admin/login" className="text-gray-600 hover:text-gray-900">Admin sign in</a>
+          <a href="#/login" className="text-gray-600 hover:text-gray-900">Customer sign in</a> · <a href="#/admin/login" className="text-gray-600 hover:text-gray-900">Admin sign in</a>
         </p>
       </div>
     </div>
   )
 }
-
-export default Login

@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app import models
-from app.auth import get_current_seller
+from app.auth import get_current_seller, get_current_seller_only
 from app.database import get_db
 
 
@@ -36,3 +36,10 @@ def resolve_seller_scope(
         return current_user, None, True
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
+
+
+def resolve_seller_only_scope(
+    current_user: models.User = Depends(get_current_seller_only),
+) -> Tuple[models.User, Optional[int], bool]:
+    """Scope for seller write actions: sellers only, always scoped to their own id."""
+    return current_user, current_user.id, False

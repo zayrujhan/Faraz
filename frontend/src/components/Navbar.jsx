@@ -1,6 +1,6 @@
 import { Search, ShoppingCart, User, Store, Shield, LogOut } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { logoUrl, sellerLogo } from '../lib/images'
+import { logoUrl } from '../lib/images'
 
 function Navbar() {
   const { user, logout, isSeller, isAdmin, isSellerOrAdmin } = useAuth()

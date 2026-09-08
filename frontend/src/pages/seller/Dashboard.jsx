@@ -217,7 +217,7 @@ export default function Dashboard() {
                 >
                   <div>
                     <p className="text-sm font-medium text-gray-900">{p.product_name}</p>
-                    <p className="text-xs text-gray-500">{p.units_sold} units sold</p>
+                    <p className="text-xs text-gray-700 font-medium">{p.units_sold} units sold</p>
                   </div>
                   <p className="text-sm font-medium text-gray-900">{formatPrice(p.revenue)}</p>
                 </Link>

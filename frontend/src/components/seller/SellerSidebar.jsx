@@ -12,10 +12,7 @@ const sellerNavItems = [
 ]
 
 const adminNavItems = [
-  { to: '/admin', icon: Shield, label: 'Admin', end: true },
-  { to: '/seller', icon: LayoutDashboard, label: 'Seller Dashboard', end: true },
-  { to: '/seller/products', icon: Package, label: 'Products' },
-  { to: '/seller/orders', icon: ShoppingCart, label: 'Orders' },
+  { to: '/admin', icon: Shield, label: 'Admin Dashboard', end: true },
 ]
 
 export default function SellerSidebar() {

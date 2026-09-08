@@ -77,6 +77,15 @@ def get_current_seller(current_user: models.User = Depends(get_current_user)) ->
         )
     return current_user
 
+def get_current_seller_only(current_user: models.User = Depends(get_current_user)) -> models.User:
+    """Seller-only access: admins are NOT allowed to perform seller write actions."""
+    if current_user.role != "seller":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Seller access required - admins cannot modify seller data"
+        )
+    return current_user
+
 def get_current_admin_or_seller(current_user: models.User = Depends(get_current_user)) -> models.User:
     if current_user.role not in ["admin", "seller"]:
         raise HTTPException(

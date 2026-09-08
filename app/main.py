@@ -18,10 +18,11 @@ from .auth import (
     get_current_user,
     get_current_admin,
     get_current_seller,
+    get_current_seller_only,
     get_current_admin_or_seller,
     get_optional_user,
 )
-from .dependencies.seller_scope import resolve_seller_scope
+from .dependencies.seller_scope import resolve_seller_scope, resolve_seller_only_scope
 from .services import product_service, seller_analytics
 from .services.chatbot import generate_chat_reply, is_relevant_question, get_or_create_chat_usage
 
@@ -471,14 +472,10 @@ def seller_get_products(
 def seller_create_product(
     product: schemas.ProductBase,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
-    if is_aggregated:
-        raise HTTPException(status_code=400, detail="Admin must specify seller_id query param to create a product")
-    effective_seller_id = seller_id if current_user.role == "seller" else product.seller_id
-    if effective_seller_id is None:
-        raise HTTPException(status_code=400, detail="seller_id is required")
+    effective_seller_id = seller_id
     try:
         return product_service.create_product_record(db, product, seller_id=effective_seller_id)
     except ValueError as e:
@@ -490,10 +487,10 @@ def seller_update_product(
     product_id: int,
     product_update: schemas.ProductBase,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
-    check_seller_id = None if is_aggregated or current_user.role == "admin" else seller_id
+    check_seller_id = seller_id
     try:
         updated_product = product_service.update_product_record(
             db,
@@ -512,10 +509,10 @@ def seller_update_product(
 def seller_delete_product(
     product_id: int,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
-    check_seller_id = None if is_aggregated or current_user.role == "admin" else seller_id
+    check_seller_id = seller_id
     deleted_product = product_service.delete_or_soft_delete_product(
         db,
         product_id=product_id,
@@ -532,10 +529,10 @@ def seller_patch_stock(
     product_id: int,
     update: schemas.StockUpdate,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
-    check_seller_id = None if is_aggregated or current_user.role == "admin" else seller_id
+    check_seller_id = seller_id
     try:
         product = product_service.update_product_stock(db, product_id, update.stock, check_seller_id)
     except ValueError as e:
@@ -550,10 +547,10 @@ def seller_patch_price(
     product_id: int,
     update: schemas.PriceUpdate,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
-    check_seller_id = None if is_aggregated or current_user.role == "admin" else seller_id
+    check_seller_id = seller_id
     try:
         product = product_service.update_product_price(db, product_id, update.price, check_seller_id)
     except ValueError as e:
@@ -574,7 +571,7 @@ def get_seller_profile(
 def update_seller_profile(
     update: schemas.SellerProfileUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_seller),
+    current_user: models.User = Depends(get_current_seller_only),
 ):
     if update.store_name is not None:
         current_user.store_name = update.store_name
@@ -594,13 +591,13 @@ async def upload_product_image(
     product_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     current_user, seller_id, is_aggregated = scope
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    if not is_aggregated and current_user.role == "seller" and product.seller_id != seller_id:
+    if product.seller_id != seller_id:
         raise HTTPException(status_code=403, detail="Not authorized to modify this product")
 
     allowed_types = {"image/jpeg", "image/png", "image/webp", "image/gif"}
@@ -835,7 +832,7 @@ def seller_update_order_item(
     item_id: int,
     update: schemas.OrderItemStatusUpdate,
     db: Session = Depends(get_db),
-    scope=Depends(resolve_seller_scope),
+    scope=Depends(resolve_seller_only_scope),
 ):
     _, seller_id, is_aggregated = scope
     try:
@@ -844,7 +841,7 @@ def seller_update_order_item(
             order_id=order_id,
             item_id=item_id,
             status=update.status,
-            seller_id=None if is_aggregated else seller_id,
+            seller_id=seller_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

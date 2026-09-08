@@ -74,7 +74,7 @@ function AppRoutes() {
     <Route path="/account" element={<ProtectedRoute roles={['customer']}><Account /></ProtectedRoute>} />
     <Route path="/orders" element={<ProtectedRoute roles={['customer']}><CustomerOrders /></ProtectedRoute>} />
 
-    <Route path="/seller" element={<ProtectedRoute roles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
+    <Route path="/seller" element={<ProtectedRoute roles={['seller']}><SellerLayout /></ProtectedRoute>}>
       <Route index element={<Dashboard />} />
       <Route path="products" element={<ProductList />} />
       <Route path="products/new" element={<ProductForm />} />

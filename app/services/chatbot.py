@@ -1,4 +1,6 @@
 import os
+import re
+from datetime import date
 from typing import List, Optional
 
 import httpx
@@ -13,8 +15,43 @@ Answer only questions related to: products, shipping, returns, orders, payments,
 Rules:
 - Use ONLY the retrieved context below. Do not invent products, prices, stock levels, or order statuses.
 - If the context does not contain enough information, say you do not have that information and suggest contacting support.
+- When listing products, include each product ID in the format "Product #123" so the storefront can link to it.
 - Be concise and helpful.
 """
+
+# If the user message does not contain any of these terms, we refuse to call the LLM and save tokens.
+RELEVANT_KEYWORDS = {
+    "product", "products", "item", "items", "order", "orders", "cart", "checkout", "payment", "payments",
+    "shipping", "delivery", "ship", "track", "return", "refund", "exchange", "category", "categories",
+    "stock", "price", "buy", "purchase", "shop", "store", "seller", "account", "help", "support",
+    "faraz", "recommend", "suggest", "find", "search", "looking for", "want", "need", "cheap", "expensive",
+    "under", "over", "less than", "more than", "discount", "offer", "deal",
+}
+
+
+def is_relevant_question(message: str) -> bool:
+    """Lightweight guard to avoid burning tokens on off-topic questions."""
+    if not message:
+        return False
+    words = set(re.sub(r"[^a-z0-9\s]", "", message.lower()).split())
+    # Allow single-word greetings if they are not standalone unrelated questions.
+    if len(words) <= 1:
+        return True
+    return any(kw in message.lower() for kw in RELEVANT_KEYWORDS) or bool(words & RELEVANT_KEYWORDS)
+
+
+def get_or_create_chat_usage(db: Session, user_id: int) -> models.ChatUsage:
+    today = date.today()
+    usage = (
+        db.query(models.ChatUsage)
+        .filter(models.ChatUsage.user_id == user_id, models.ChatUsage.date == today)
+        .first()
+    )
+    if not usage:
+        usage = models.ChatUsage(user_id=user_id, date=today, message_count=0)
+        db.add(usage)
+        db.flush()
+    return usage
 
 
 def _search_products(db: Session, message: str, limit: int = 5) -> List[models.Product]:
@@ -89,7 +126,11 @@ def build_retrieval_context(db: Session, message: str, user_id: Optional[int]) -
     return "\n".join(parts)
 
 
-async def generate_chat_reply(db: Session, message: str, user_id: Optional[int]) -> str:
+async def generate_chat_reply(
+    db: Session,
+    message: str,
+    user_id: int,
+) -> str:
     api_key = (os.getenv("LLM_API_KEY") or "").strip()
     base_url = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1").rstrip("/")
     model = os.getenv("LLM_MODEL", "deepseek/deepseek-v4-flash-0731")

@@ -1,3 +1,5 @@
+import { logoUrl } from '../lib/images'
+
 function Footer() {
     return (
         <footer className="border-t border-gray-300 mt-12">
@@ -7,11 +9,9 @@ function Footer() {
 
                 {/* Logo / Company information */}
                 <div className="col-span-2 md:col-span-1">
-                    <div className="w-28 h-12 bg-gray-100 rounded-md
-                                    flex items-center justify-center mb-4">
-                        <span className="text-gray-400 text-sm">
-                            Logo
-                        </span>
+                    <div className="flex items-center gap-2 mb-4">
+                        <img src={logoUrl()} alt="Faraz" className="h-8 object-contain" />
+                        <span className="text-gray-800 font-semibold">Faraz</span>
                     </div>
 
                     <p className="text-sm text-gray-500 mb-8">

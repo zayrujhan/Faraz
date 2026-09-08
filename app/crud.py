@@ -50,6 +50,8 @@ def update_user(db: Session, user: models.User, update: schemas.UserUpdate) -> m
         user.password = hash_password(update.password)
     if update.role:
         user.role = update.role
+    if update.is_active is not None:
+        user.is_active = update.is_active
     if update.store_name is not None:
         user.store_name = update.store_name
     if update.store_description is not None:

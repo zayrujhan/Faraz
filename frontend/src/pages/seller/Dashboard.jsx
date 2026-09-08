@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Package, ShoppingCart, DollarSign, AlertTriangle, TrendingUp } from 'lucide-react'
+import { Package, ShoppingCart, DollarSign, AlertTriangle, TrendingUp, Plus, Edit } from 'lucide-react'
 import { api, formatPrice, formatDate } from '../../lib/api'
+import { productImage } from '../../lib/images'
 import MetricCard from '../../components/ui/MetricCard'
 
 export default function Dashboard() {
   const [data, setData] = useState(null)
+  const [products, setProducts] = useState([])
+  const [productError, setProductError] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -18,6 +21,12 @@ export default function Dashboard() {
         if (e.name !== 'AbortError') setError(e.message)
       })
       .finally(() => setLoading(false))
+
+    api('/seller/products?limit=100&include_inactive=true', { signal: controller.signal })
+      .then(setProducts)
+      .catch((e) => {
+        if (e.name !== 'AbortError') setProductError(e.message)
+      })
 
     return () => controller.abort()
   }, [])
@@ -56,6 +65,79 @@ export default function Dashboard() {
         <MetricCard label="Total Sales" value={formatPrice(data.total_sales)} icon={DollarSign} />
       </div>
 
+      <div className="bg-white border border-gray-200 rounded-lg p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Stock Alerts</h2>
+          <Link to="/seller/products/new" className="flex items-center gap-1 text-xs bg-gray-800 text-white px-3 py-1.5 rounded hover:bg-gray-700">
+            <Plus className="w-3 h-3" /> Add product
+          </Link>
+        </div>
+
+        {productError && <p className="text-sm text-red-600 mb-3">{productError}</p>}
+
+        {products.length === 0 ? (
+          <p className="text-sm text-gray-500">No products yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-3 py-2">Product</th>
+                  <th className="px-3 py-2">Stock</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products
+                  .filter((p) => p.stock <= 10)
+                  .sort((a, b) => a.stock - b.stock)
+                  .map((p) => (
+                    <tr key={p.id} className="border-t border-gray-100">
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={productImage(p, 40, 40)}
+                            alt=""
+                            className="w-10 h-10 rounded object-cover bg-gray-100"
+                            onError={(e) => { e.target.src = 'https://placehold.co/40x40?text=No+Image' }}
+                          />
+                          <div>
+                            <p className="font-medium text-gray-700 line-clamp-1">{p.name}</p>
+                            <p className="text-xs text-gray-500">{formatPrice(p.price)}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className={`font-semibold ${p.stock === 0 ? 'text-red-600' : p.stock <= 10 ? 'text-yellow-600' : 'text-gray-700'}`}>
+                          {p.stock}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        {p.stock === 0 ? (
+                          <span className="text-xs font-semibold px-2 py-1 rounded bg-red-100 text-red-700">Out of stock</span>
+                        ) : p.stock <= 10 ? (
+                          <span className="text-xs font-semibold px-2 py-1 rounded bg-yellow-100 text-yellow-700">Low stock</span>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-1 rounded bg-green-100 text-green-700">OK</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <Link to={`/seller/products/${p.id}`} className="inline-flex items-center gap-1 text-xs text-gray-700 underline hover:text-gray-900">
+                          <Edit className="w-3 h-3" /> Edit / restock
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+            {products.filter((p) => p.stock <= 10).length === 0 && (
+              <p className="text-sm text-gray-500 py-4">No low or out-of-stock products. Great job!</p>
+            )}
+          </div>
+        )}
+      </div>
+
       {(data.low_stock_products > 0 || data.out_of_stock_products > 0) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {data.low_stock_products > 0 && (
@@ -66,7 +148,7 @@ export default function Dashboard() {
                   {data.low_stock_products} products low on stock
                 </p>
                 <Link to="/seller/products" className="text-xs text-yellow-600 underline">
-                  View products
+                  View all products
                 </Link>
               </div>
             </div>
@@ -79,7 +161,7 @@ export default function Dashboard() {
                   {data.out_of_stock_products} products out of stock
                 </p>
                 <Link to="/seller/products" className="text-xs text-red-600 underline">
-                  View products
+                  View all products
                 </Link>
               </div>
             </div>

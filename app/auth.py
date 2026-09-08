@@ -38,6 +38,11 @@ def get_current_user(token: str = Depends(oauth2_scheme_required), db: Session =
     user = crud.get_user(db, user_id=user_id)
     if user is None:
         raise credentials_exception
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been blocked or deactivated"
+        )
     return user
 
 def get_optional_user(

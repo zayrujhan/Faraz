@@ -22,6 +22,7 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     password: Optional[str] = None
     role: Optional[str] = None
+    is_active: Optional[bool] = None
     store_name: Optional[str] = None
     store_description: Optional[str] = None
     logo_url: Optional[str] = None
@@ -366,6 +367,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     used_authentication: bool = False
+    remaining_messages: int = 0
 
 # SELLER PROFILE
 class SellerProfileUpdate(BaseModel):

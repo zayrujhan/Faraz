@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import timedelta
+from datetime import timedelta, date
 from typing import Optional
 import shutil
 import uuid
@@ -23,7 +23,7 @@ from .auth import (
 )
 from .dependencies.seller_scope import resolve_seller_scope
 from .services import product_service, seller_analytics
-from .services.chatbot import generate_chat_reply
+from .services.chatbot import generate_chat_reply, is_relevant_question, get_or_create_chat_usage
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -177,6 +177,9 @@ def update_user(update: schemas.UserUpdate, db: Session = Depends(get_db), curre
     db_user = crud.get_user(db, user_id=current_user.id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
+    # Prevent self-escalation: clear role and is_active so users cannot change them
+    update.role = None
+    update.is_active = None
     return crud.update_user(db, user=db_user, update=update)
 
 
@@ -203,6 +206,60 @@ def admin_update_user_role(
         raise HTTPException(status_code=400, detail="Invalid role")
     
     return crud.update_user(db, user=db_user, update=update)
+
+@app.post("/admin/sellers", response_model=schemas.User, status_code=201, tags=["Users"], summary="Admin: create a seller account")
+def admin_create_seller(
+    seller: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin),
+):
+    if seller.role and seller.role != "seller":
+        raise HTTPException(status_code=400, detail="This endpoint can only create sellers")
+    if crud.get_user_by_email(db, email=seller.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+    seller.role = "seller"
+    return crud.create_user(db, user=seller)
+
+
+@app.get("/admin/fraud-report", tags=["Users"], summary="Admin: risk summary for sellers")
+def admin_fraud_report(
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(get_current_admin),
+):
+    from sqlalchemy import func
+
+    sellers = db.query(models.User).filter(models.User.role == "seller").all()
+    report = []
+    for seller in sellers:
+        products = db.query(models.Product).filter(models.Product.seller_id == seller.id).all()
+        product_ids = [p.id for p in products]
+        total_products = len(products)
+        out_of_stock = sum(1 for p in products if p.stock == 0)
+        low_stock = sum(1 for p in products if 0 < p.stock <= 10)
+
+        order_items = (
+            db.query(models.OrderItem)
+            .filter(models.OrderItem.product_id.in_(product_ids))
+            .all()
+        ) if product_ids else []
+        total_items = len(order_items)
+        cancelled_items = sum(1 for i in order_items if i.status == "Cancelled")
+        cancellation_rate = (cancelled_items / total_items * 100) if total_items else 0
+
+        report.append({
+            "seller_id": seller.id,
+            "seller_name": seller.name,
+            "seller_email": seller.email,
+            "total_products": total_products,
+            "out_of_stock": out_of_stock,
+            "low_stock": low_stock,
+            "total_order_items": total_items,
+            "cancelled_items": cancelled_items,
+            "cancellation_rate": round(cancellation_rate, 2),
+            "flagged": cancellation_rate > 50 or out_of_stock > 5,
+        })
+    return report
+
 
 # ADDRESS USER
 @app.post("/addresses/", response_model=schemas.Address, tags=["Addresses"], summary="Add an address for current user")
@@ -243,6 +300,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = crud.get_user_by_email(db, email=form_data.username)
     if not user or not crud.verify_password(form_data.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been blocked or deactivated")
     access_token = create_access_token(
         data={"user_id": user.id, "email": user.email, "role": user.role},
         expires_delta=timedelta(minutes=60)
@@ -824,11 +883,33 @@ def seller_sales_summary(
 
 
 # CHAT
+DAILY_CHAT_LIMIT = 5
+
 @app.post("/chat", response_model=schemas.ChatResponse, tags=["Chat"], summary="Customer support chatbot")
 async def chat_endpoint(
     body: schemas.ChatRequest,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_optional_user),
+    current_user: models.User = Depends(get_current_user),
 ):
-    reply = await generate_chat_reply(db, body.message, current_user.id if current_user else None)
-    return schemas.ChatResponse(reply=reply, used_authentication=current_user is not None)
+    usage = get_or_create_chat_usage(db, current_user.id)
+    remaining = DAILY_CHAT_LIMIT - usage.message_count
+    if remaining <= 0:
+        return schemas.ChatResponse(
+            reply=f"You have reached the daily limit of {DAILY_CHAT_LIMIT} messages. Please try again tomorrow.",
+            used_authentication=True,
+            remaining_messages=0,
+        )
+
+    usage.message_count += 1
+    db.commit()
+    remaining = DAILY_CHAT_LIMIT - usage.message_count
+
+    if not is_relevant_question(body.message):
+        return schemas.ChatResponse(
+            reply="I can only help with questions about products, orders, shipping, returns, payments, and using the Faraz site. Please ask something related to those topics.",
+            used_authentication=True,
+            remaining_messages=remaining,
+        )
+
+    reply = await generate_chat_reply(db, body.message, current_user.id)
+    return schemas.ChatResponse(reply=reply, used_authentication=True, remaining_messages=remaining)

@@ -2,12 +2,16 @@ import { HashRouter, Navigate, Route, Routes, useParams, useSearchParams } from 
 import { AuthProvider, useAuth } from './context/AuthContext'
 import HomePage from './pages/Home'
 import Login from './pages/login'
+import SellerLogin from './pages/SellerLogin'
+import AdminLogin from './pages/AdminLogin'
 import Register from './pages/Register'
 import Shop from './pages/Productpage'
 import ProductDetails from './pages/ProductDetails'
 import ShoppingCart from './pages/ShoppingCart'
 import ShippingDetails from './pages/shippingDetails'
 import PaymentDetails from './pages/PaymentDetails'
+import Account from './pages/Account'
+import CustomerOrders from './pages/CustomerOrders'
 import SellerLayout from './components/seller/SellerLayout'
 import Dashboard from './pages/seller/Dashboard'
 import ProductList from './pages/seller/ProductList'
@@ -16,6 +20,8 @@ import OrderList from './pages/seller/OrderList'
 import OrderDetail from './pages/seller/OrderDetail'
 import Analytics from './pages/seller/Analytics'
 import Settings from './pages/seller/Settings'
+import AdminDashboard from './pages/AdminDashboard'
+import ChatWidget from './components/ChatWidget'
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth()
@@ -25,11 +31,16 @@ function ProtectedRoute({ children, roles }) {
   return children
 }
 
-function LoginRedirect() {
+function LoginPage({ role }) {
   const { user, loading } = useAuth()
   if (loading) return null
-  if (user && (user.role === 'seller' || user.role === 'admin')) return <Navigate to="/seller" replace />
-  if (user) return <Navigate to="/" replace />
+  if (user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />
+    if (user.role === 'seller') return <Navigate to="/seller" replace />
+    return <Navigate to="/" replace />
+  }
+  if (role === 'seller') return <SellerLogin />
+  if (role === 'admin') return <AdminLogin />
   return <Login />
 }
 
@@ -52,13 +63,18 @@ function ShopWrapper() {
 function AppRoutes() {
   return <Routes>
     <Route path="/" element={<HomePage />} />
-    <Route path="/login" element={<LoginRedirect />} />
+    <Route path="/login" element={<LoginPage role="customer" />} />
+    <Route path="/seller/login" element={<LoginPage role="seller" />} />
+    <Route path="/admin/login" element={<LoginPage role="admin" />} />
     <Route path="/register" element={<RegisterRedirect />} />
     <Route path="/shop" element={<ShopWrapper />} />
     <Route path="/products/:id" element={<ProductDetailsWrapper />} />
     <Route path="/cart" element={<ShoppingCart />} />
     <Route path="/shipping" element={<ShippingDetails />} />
     <Route path="/payment" element={<PaymentDetails />} />
+    <Route path="/account" element={<ProtectedRoute roles={['customer']}><Account /></ProtectedRoute>} />
+    <Route path="/orders" element={<ProtectedRoute roles={['customer']}><CustomerOrders /></ProtectedRoute>} />
+
     <Route path="/seller" element={<ProtectedRoute roles={['seller', 'admin']}><SellerLayout /></ProtectedRoute>}>
       <Route index element={<Dashboard />} />
       <Route path="products" element={<ProductList />} />
@@ -69,10 +85,15 @@ function AppRoutes() {
       <Route path="analytics" element={<Analytics />} />
       <Route path="settings" element={<Settings />} />
     </Route>
+
+    <Route path="/admin" element={<ProtectedRoute roles={['admin']}><SellerLayout /></ProtectedRoute>}>
+      <Route index element={<AdminDashboard />} />
+    </Route>
+
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 }
 
 export default function App() {
-  return <HashRouter><AuthProvider><AppRoutes /></AuthProvider></HashRouter>
+  return <HashRouter><AuthProvider><AppRoutes /><ChatWidget /></AuthProvider></HashRouter>
 }

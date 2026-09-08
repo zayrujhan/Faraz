@@ -109,15 +109,26 @@ def seed_addresses(db, customers):
     return addresses
 
 
+DESCRIPTION_TEMPLATES = [
+    "Discover the {name}. Premium quality, fast delivery, and easy returns only at Faraz.",
+    "The {name} is a great addition to your collection. Shop now with secure checkout and reliable shipping.",
+    "Upgrade your everyday routine with the {name}. Handpicked for Faraz customers at a competitive price.",
+    "Get the {name} today. Durable, practical, and backed by friendly Faraz support.",
+    "Experience the {name} — a trusted choice for value and quality. Order from Faraz with confidence.",
+]
+
+
 def seed_products(db, subcategories, top_level, sellers, product_count):
     seller_ids = [u.id for u in sellers if u.role == "seller"]
     category_pool = subcategories + top_level
     created = 0
     for index in range(1, product_count + 1):
         category = random.choice(category_pool)
+        name = f"{random.choice(ADJECTIVES)} {random.choice(NOUNS)} #{index}"
+        description = DESCRIPTION_TEMPLATES[index % len(DESCRIPTION_TEMPLATES)].format(name=name)
         product = schemas.ProductBase(
-            name=f"{random.choice(ADJECTIVES)} {random.choice(NOUNS)} #{index}",
-            description=f"Demo product {index} for Vend API testing.",
+            name=name,
+            description=description,
             price=round(random.uniform(5, 500), 2),
             stock=random.randint(0, 250),
             category_id=category.id,

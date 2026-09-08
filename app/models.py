@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, func, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Date, Text, func, Boolean
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -24,7 +24,8 @@ class User(Base):
     cart = relationship("Cart", back_populates="user", uselist=False)
     reviews = relationship("Review", back_populates="user")
     wishlist_items = relationship("Wishlist", back_populates="user")
-    products = relationship("Product", back_populates="seller") 
+    products = relationship("Product", back_populates="seller")
+    chat_usage = relationship("ChatUsage", back_populates="user", uselist=False)
 
 # ADDRESS 
 class Address(Base):
@@ -214,5 +215,16 @@ class Wishlist(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
 
-    user = relationship("User", back_populates="wishlist_items")  
+    user = relationship("User", back_populates="wishlist_items")
     product = relationship("Product", back_populates="wishlist_entries")
+
+
+class ChatUsage(Base):
+    __tablename__ = "chat_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    message_count = Column(Integer, default=0, nullable=False)
+
+    user = relationship("User", back_populates="chat_usage")

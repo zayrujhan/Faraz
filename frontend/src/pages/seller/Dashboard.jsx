@@ -22,7 +22,7 @@ export default function Dashboard() {
       })
       .finally(() => setLoading(false))
 
-    api('/seller/products?limit=100&include_inactive=true', { signal: controller.signal })
+    api('/seller/products?limit=100&include_inactive=true&sort=stock&order=asc', { signal: controller.signal })
       .then(setProducts)
       .catch((e) => {
         if (e.name !== 'AbortError') setProductError(e.message)
@@ -131,7 +131,7 @@ export default function Dashboard() {
                   ))}
               </tbody>
             </table>
-            {products.filter((p) => p.stock <= 10).length === 0 && (
+            {products.filter((p) => p.stock <= 10).length === 0 && data.low_stock_products === 0 && data.out_of_stock_products === 0 && (
               <p className="text-sm text-gray-500 py-4">No low or out-of-stock products. Great job!</p>
             )}
           </div>
